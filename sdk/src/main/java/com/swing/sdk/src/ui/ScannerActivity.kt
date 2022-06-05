@@ -27,12 +27,16 @@ class ScannerActivity : AppCompatActivity(), View.OnClickListener {
         super.onCreate(savedInstanceState)
         binding = ActivityScannerBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        binding.startCameraButton.setOnClickListener(this)
+        binding.switchCameraButton.setOnClickListener(this)
+        binding.flashButton.setOnClickListener(this)
 
         cameraManager.onOpenCvInit()
         cameraManager.setPermissionList(REQUIRED_PERMISSIONS)
         cameraManager.setRequestPermissionCode(REQUEST_CODE_PERMISSIONS)
         cameraManager.requestPermission()
         cameraManager.setPreviewView(binding.preview)
+        cameraManager.setGraphicOverlay(binding.overlay)
         cameraManager.onCameraStart()
 
         findViewById<AppCompatButton>(R.id.startCameraButton).setOnClickListener {
@@ -45,9 +49,17 @@ class ScannerActivity : AppCompatActivity(), View.OnClickListener {
     }
 
     override fun onClick(p0: View?) {
-        when(p0?.id) {
+        when (p0?.id) {
             R.id.startCameraButton -> {
                 cameraManager.onCameraClick()
+            }
+
+            R.id.switchCameraButton -> {
+                cameraManager.onCameraSwitch()
+            }
+
+            R.id.flashButton -> {
+                cameraManager.onTurnOnFlash()
             }
 
             R.id.facialRecognitionButton -> {
@@ -65,6 +77,7 @@ class ScannerActivity : AppCompatActivity(), View.OnClickListener {
             R.id.textRecognitionButton -> {
                 cameraManager.onTextRecognitionClick()
             }
+
         }
     }
 

@@ -4,22 +4,24 @@ import android.app.Activity
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.util.Log
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageCapture
-import androidx.camera.core.Preview
+import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat.requestPermissions
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.swing.sdk.src.base.GraphicOverlay
+import com.swing.sdk.src.enums.VisionType
 import com.swing.sdk.src.interfaces.CameraCallback
+import com.swing.sdk.src.interfaces.MlCallback
+import com.swing.sdk.src.ui.painter.TextRecognitionProcessor
 import org.opencv.android.OpenCVLoader
 import java.util.concurrent.Executors
 
 class CameraManager constructor(
     private val activity: Activity,
     private val lifecycleOwner: LifecycleOwner,
-) : CameraCallback {
+) : CameraCallback, MlCallback {
 
     private var requestCode: Int = 452
     private var permissionList = arrayOf(
@@ -35,47 +37,59 @@ class CameraManager constructor(
         ProcessCameraProvider.getInstance(activity)
     }
 
-    private var imageCapture: ImageCapture? = null
-
     private val executor by lazy {
         ContextCompat.getMainExecutor(activity)
     }
 
+    private var imageCapture: ImageCapture? = null
     private var preview: PreviewView? = null
+    private var cameraModeSelected = CameraSelector.DEFAULT_BACK_CAMERA
+    private var camera: Camera? = null
+    private var isFlashOn = false
+    private var imageAnalyzer: ImageAnalysis? = null
+    private var graphicOverlay: GraphicOverlay? = null
 
     override fun onCameraStart() {
-        cameraProviderFuture.addListener({
-            // Used to bind the lifecycle of cameras to the lifecycle owner
-            val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
+        cameraProviderFuture.addListener(
+            {
+                val cameraProvider = cameraProviderFuture.get()
 
-            // Preview
-            val preview = Preview.Builder()
-                .build()
-                .also {
-                    it.setSurfaceProvider(preview?.surfaceProvider)
+                // Preview
+                val preview = Preview.Builder()
+                    .build()
+                    .also {
+                        it.setSurfaceProvider(preview?.surfaceProvider)
+                    }
+
+                imageAnalyzer = ImageAnalysis.Builder()
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build()
+                    .also {
+                        it.setAnalyzer(executor, onSelectAnalyser(VisionType.OCR))
+                    }
+
+                try {
+                    // Unbind use cases before rebinding
+                    cameraProvider?.unbindAll()
+
+                    // Bind use cases to camera
+                    camera = cameraProvider?.bindToLifecycle(
+                        lifecycleOwner,
+                        cameraModeSelected,
+                        preview,
+                        imageAnalyzer
+                    )
+
+                } catch (exc: Exception) {
+                    Log.e("TAG", "Use case binding failed", exc)
                 }
 
-            // Select back camera as a default
-            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-
-            try {
-                // Unbind use cases before rebinding
-                cameraProvider.unbindAll()
-
-                // Bind use cases to camera
-                cameraProvider.bindToLifecycle(
-                    lifecycleOwner, cameraSelector, preview
-                )
-
-            } catch (exc: Exception) {
-                Log.e("TAG", "Use case binding failed", exc)
-            }
-
-        }, executor)
+            }, executor
+        )
     }
 
     override fun onImageSaved(imageUri: Uri) {
-        TODO("Not yet implemented")
+
     }
 
     override fun onCameraStop() {
@@ -86,11 +100,28 @@ class CameraManager constructor(
     }
 
     override fun onCameraClick() {
-        TODO("Not yet implemented")
+
     }
 
     override fun onCameraError(error: String) {
-        TODO("Not yet implemented")
+
+    }
+
+    override fun onTurnOnFlash() {
+        if (camera?.cameraInfo?.hasFlashUnit() == true) {
+            isFlashOn = !isFlashOn
+            camera?.cameraControl?.enableTorch(isFlashOn)
+        }
+    }
+
+    override fun onCameraSwitch() {
+        Log.d("TAG", "onCameraSwitch")
+        cameraModeSelected = if (cameraModeSelected == CameraSelector.DEFAULT_BACK_CAMERA) {
+            CameraSelector.DEFAULT_FRONT_CAMERA
+        } else {
+            CameraSelector.DEFAULT_BACK_CAMERA
+        }
+        onCameraStart()
     }
 
     override fun onCameraPermissionResult(
@@ -144,23 +175,34 @@ class CameraManager constructor(
     }
 
     override fun onFacialRecognitionClick() {
-        TODO("Not yet implemented")
+
     }
 
     override fun onBarcodeClick() {
-        TODO("Not yet implemented")
+
     }
 
     override fun onImageLabelClick() {
-        TODO("Not yet implemented")
+
     }
 
     override fun onTextRecognitionClick() {
-        TODO("Not yet implemented")
+
+    }
+
+    override fun onSelectAnalyser(analyser: VisionType): ImageAnalysis.Analyzer {
+        return when (analyser) {
+            VisionType.OCR -> TextRecognitionProcessor(graphicOverlay!!)
+            else -> TextRecognitionProcessor(graphicOverlay!!)
+        }
     }
 
     override fun setPreviewView(previewView: PreviewView) {
         this.preview = previewView
+    }
+
+    override fun setGraphicOverlay(overlay: GraphicOverlay) {
+        this.graphicOverlay = overlay
     }
 
     companion object {

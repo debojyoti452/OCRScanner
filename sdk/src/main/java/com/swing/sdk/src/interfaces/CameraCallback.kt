@@ -19,6 +19,10 @@ interface CameraCallback {
         IntArray
     )
 
+    fun onCameraSwitch()
+
+    fun onTurnOnFlash()
+
     fun setPreviewView(previewView: PreviewView)
 
     fun isCameraPermissionGranted(): Boolean
