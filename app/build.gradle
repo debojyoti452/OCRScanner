@@ -11,7 +11,7 @@ android {
     compileSdk globalConfiguration["androidCompileSDK"]
 
     defaultConfig {
-        applicationId "com.example.customerio"
+        applicationId "com.example.ocrscanner"
 
         minSdk globalConfiguration["androidMinSDK"]
         targetSdk globalConfiguration["androidCompileSDK"]

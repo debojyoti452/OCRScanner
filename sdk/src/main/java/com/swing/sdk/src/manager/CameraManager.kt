@@ -1,9 +1,13 @@
 package com.swing.sdk.src.manager
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.util.DisplayMetrics
 import android.util.Log
+import android.util.Size
+import android.widget.Toast
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -15,6 +19,7 @@ import com.swing.sdk.src.enums.VisionType
 import com.swing.sdk.src.interfaces.CameraCallback
 import com.swing.sdk.src.interfaces.MlCallback
 import com.swing.sdk.src.ui.painter.TextRecognitionProcessor
+import com.swing.sdk.src.utils.FileSaver
 import org.opencv.android.OpenCVLoader
 import java.util.concurrent.Executors
 
@@ -41,13 +46,15 @@ class CameraManager constructor(
         ContextCompat.getMainExecutor(activity)
     }
 
-    private var imageCapture: ImageCapture? = null
-    private var preview: PreviewView? = null
+    private lateinit var metrics: DisplayMetrics
+    private lateinit var imageCapture: ImageCapture
+    private var previewView: PreviewView? = null
     private var cameraModeSelected = CameraSelector.DEFAULT_BACK_CAMERA
     private var camera: Camera? = null
     private var isFlashOn = false
     private var imageAnalyzer: ImageAnalysis? = null
     private var graphicOverlay: GraphicOverlay? = null
+    var rotation: Float = 0f
 
     override fun onCameraStart() {
         cameraProviderFuture.addListener(
@@ -58,15 +65,22 @@ class CameraManager constructor(
                 val preview = Preview.Builder()
                     .build()
                     .also {
-                        it.setSurfaceProvider(preview?.surfaceProvider)
+                        it.setSurfaceProvider(previewView?.surfaceProvider)
                     }
 
                 imageAnalyzer = ImageAnalysis.Builder()
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()
                     .also {
-                        it.setAnalyzer(executor, onSelectAnalyser(VisionType.OCR))
+                        it.setAnalyzer(imageExecutor, onSelectAnalyser(VisionType.OCR))
                     }
+
+                metrics = DisplayMetrics().also { previewView?.display?.getRealMetrics(it) }
+
+                imageCapture =
+                    ImageCapture.Builder()
+                        .setTargetResolution(Size(metrics.widthPixels, metrics.heightPixels))
+                        .build()
 
                 try {
                     // Unbind use cases before rebinding
@@ -77,6 +91,7 @@ class CameraManager constructor(
                         lifecycleOwner,
                         cameraModeSelected,
                         preview,
+                        imageCapture,
                         imageAnalyzer
                     )
 
@@ -100,7 +115,24 @@ class CameraManager constructor(
     }
 
     override fun onCameraClick() {
+        imageCapture.takePicture(imageExecutor, object : ImageCapture.OnImageCapturedCallback() {
+            @SuppressLint("UnsafeExperimentalUsageError", "RestrictedApi", "UnsafeOptInUsageError")
+            override fun onCaptureSuccess(image: ImageProxy) {
+                image.image?.let {
+                    FileSaver.imageToBitmapSaveGallery(
+                        image = it,
+                        cameraManager = this@CameraManager
+                    )
+                }
+                Log.d("TAG", "Image saved")
+                super.onCaptureSuccess(image)
+            }
 
+            override fun onError(exception: ImageCaptureException) {
+                Log.d("TAG", "Image capture failed: $exception")
+                super.onError(exception)
+            }
+        })
     }
 
     override fun onCameraError(error: String) {
@@ -198,12 +230,26 @@ class CameraManager constructor(
     }
 
     override fun setPreviewView(previewView: PreviewView) {
-        this.preview = previewView
+        this.previewView = previewView
     }
 
     override fun setGraphicOverlay(overlay: GraphicOverlay) {
         this.graphicOverlay = overlay
     }
+
+    override fun getGraphView(): GraphicOverlay {
+        return graphicOverlay!!
+    }
+
+    override fun getPreviewView(): PreviewView {
+        return previewView!!
+    }
+
+    fun isHorizontalMode(): Boolean = rotation == 90f || rotation == 270f
+
+    fun isFrontMode(): Boolean = (cameraModeSelected == CameraSelector.DEFAULT_FRONT_CAMERA)
+
+    override fun getActivity(): Activity = activity
 
     companion object {
         val TAG: String = CameraManager::class.java.simpleName

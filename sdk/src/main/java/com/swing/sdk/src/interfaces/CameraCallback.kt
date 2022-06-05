@@ -1,7 +1,9 @@
 package com.swing.sdk.src.interfaces
 
+import android.app.Activity
 import android.net.Uri
 import androidx.camera.view.PreviewView
+import com.swing.sdk.src.base.GraphicOverlay
 
 interface CameraCallback {
     fun onCameraStart()
@@ -46,4 +48,10 @@ interface CameraCallback {
     fun onImageLabelClick()
 
     fun onTextRecognitionClick()
+
+    fun getPreviewView(): PreviewView
+
+    fun getGraphView(): GraphicOverlay
+
+    fun getActivity() : Activity
 }

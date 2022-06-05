@@ -20,8 +20,8 @@ open class GraphicOverlay(context: Context?, attrs: AttributeSet?) :
     var mOffsetX: Float? = null
     var mOffsetY: Float? = null
     private var cameraSelector: Int = CameraSelector.LENS_FACING_BACK
-    private lateinit var processBitmap: Bitmap
-    private lateinit var processCanvas: Canvas
+    lateinit var processBitmap: Bitmap
+    lateinit var processCanvas: Canvas
 
     abstract class Graphic(private val overlay: GraphicOverlay) {
 

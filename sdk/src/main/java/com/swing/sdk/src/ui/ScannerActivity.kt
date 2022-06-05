@@ -3,7 +3,6 @@ package com.swing.sdk.src.ui
 import android.os.Bundle
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.AppCompatButton
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -38,20 +37,16 @@ class ScannerActivity : AppCompatActivity(), View.OnClickListener {
         cameraManager.setPreviewView(binding.preview)
         cameraManager.setGraphicOverlay(binding.overlay)
         cameraManager.onCameraStart()
-
-        findViewById<AppCompatButton>(R.id.startCameraButton).setOnClickListener {
-            cameraManager.onCameraClick()
-//            val intent = Intent()
-//            intent.putExtra("result", "Debojyoti Singha")
-//            setResult(RESULT_OK, intent)
-//            finish()
-        }
     }
 
     override fun onClick(p0: View?) {
         when (p0?.id) {
             R.id.startCameraButton -> {
                 cameraManager.onCameraClick()
+//            val intent = Intent()
+//            intent.putExtra("result", "Debojyoti Singha")
+//            setResult(RESULT_OK, intent)
+//            finish()
             }
 
             R.id.switchCameraButton -> {
