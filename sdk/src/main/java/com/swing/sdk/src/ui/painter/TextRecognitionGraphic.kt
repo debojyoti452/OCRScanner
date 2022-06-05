@@ -28,7 +28,7 @@ class TextRecognitionGraphic(
         element.boundingBox?.let { box ->
             val rect = calculateRect(imageRect.height().toFloat(), imageRect.width().toFloat(), box)
             canvas?.drawRoundRect(rect, ROUND_RECT_CORNER, ROUND_RECT_CORNER, rectPaint)
-            canvas?.drawText(element.text, rect.bottom, rect.bottom, textPaint)
+//            canvas?.drawText(element.text, rect.bottom, rect.bottom, textPaint)
         }
     }
 
